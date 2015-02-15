@@ -1,0 +1,29 @@
+grammar cl;
+
+list-processing --> lisp ;
+
+lisp --> sexpr * ;
+
+sexpr --> '(' lisp ')' | atom ;
+
+atom --> symbol | number | string | 'NIL' ;
+
+string --> '"' char * '"' ;
+
+// http://www.lispworks.com/documentation/HyperSpec/Body/02_ca.htm
+// a little bit simplified
+number --> int | ratio | float ;
+int   -> sign? digit+ ;
+ratio -> sign? digit+ '/' digit+ ;
+float -> sign? digit* '.' digit+ 
+       | sign? digit+ fraction?
+
+sign? --> '-' | '+' | ;
+digit+ --> digit + ;
+digit* --> digit * ;
+digit --> [0-9] ;
+fraction? --> '.' digit* | ;
+
+symbol --> char + ;
+char --> [A-Za-z ... ] | '\' . ;
+
