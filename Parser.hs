@@ -14,31 +14,46 @@ instance Show Node where
     show (Lisp l) = show l 
 
 lspFile :: GenParser Char st [Node]
-lspFile =
-    do result <- many lisp
-       eof
-       return result
+lspFile = manyTill lisp eof
 
 lisp :: GenParser Char st Node
-lisp = spaces >> (sexpr <|> symbol)
+lisp = do skippable
+          result <- (sexpr <|> symbol)
+          skippable
+          return result
 
 sexpr :: GenParser Char st Node
 sexpr = 
-    do char '(' >> spaces
+    do char '(' 
        result <- many lisp
-       spaces >> char ')'
+       char ')' >> skippable
        return $ Lisp result
 
 symbol :: GenParser Char st Node
 symbol = 
-    do result <- many1 (noneOf "()\n\t ")
+    do result <- many1 (noneOf "()\n\t; ")
        return $ Sym result
 
+skippable :: GenParser Char st ()
+skippable = skipMany ((space >> return ()) <|> comment) 
 
-parseLsp :: String -> [Node]
-parseLsp input = 
-    let nodes = parse lspFile "(unknown)" input in
-        either (\_ -> []) (\x -> x) nodes
+comment :: GenParser Char st () 
+comment = commentLine <|> commentBlock
+
+commentLine :: GenParser Char st ()
+commentLine = 
+    do char ';' 
+       manyTill anyChar (char '\n')
+       return ()
+
+commentBlock :: GenParser Char st ()
+commentBlock =
+    do (try (string "#|"))
+       manyTill anyChar (try (string "|#"))
+       return ()
+
+parseLsp :: String -> Either ParseError [Node]
+parseLsp input = parse lspFile "(unknown)" input
 
 parse' :: String -> Node
 parse' input = 
