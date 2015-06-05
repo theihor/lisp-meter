@@ -13,6 +13,17 @@ instance Show Node where
     show (Sym s) = s
     show (Lisp l) = show l 
 
+nodeEq :: Node -> Node -> Bool
+nodeEq (Sym n1) (Lisp n2) = False
+nodeEq (Lisp n1) (Sym n2) = False
+nodeEq (Sym n1) (Sym n2) = n1 == n2
+nodeEq (Lisp n1) (Lisp n2) = 
+    ((length n1) == (length n2)) &&
+    (all (\(x, y) -> nodeEq x y) $ zip n1 n2)
+
+instance Eq Node where
+    n1 == n2 = nodeEq n1 n2
+
 lspFile :: GenParser Char st [Node]
 lspFile = manyTill lisp eof
 

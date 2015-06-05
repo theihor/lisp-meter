@@ -1,9 +1,10 @@
 import Parser
 import Utils 
-import qualified Data.Map as Map
+import Metrics
 import System.IO
-import qualified System.Directory as Dir
 import Control.Monad
+import qualified System.Directory as Dir
+import qualified Data.Map as Map
 
 lispFile :: String -> Bool
 lispFile p = ((drop (length p - 4) p) == ".lsp") 
@@ -20,12 +21,19 @@ getLispFiles path = do
     names <- Dir.getDirectoryContents path
     let names' = filter (\n -> not $ curOrPrevDir n) names
         paths = map (\n -> path ++ "/" ++ n) names' in
-      do lispFiles <- filterM (\p -> do e <- Dir.doesFileExist p; return $ e && lispFile p) paths
+      do lispFiles <- filterM (\p -> do e <- Dir.doesFileExist p 
+                                        return $ e && lispFile p) 
+                              paths
          dirs <- filterM Dir.doesDirectoryExist paths
          lispFilesFromDirs <- mapM getLispFiles dirs 
          let result = foldl (++) lispFiles lispFilesFromDirs in
            do return result
-       
+
+parseFile :: String -> IO [Node]
+parseFile path = do 
+    content <- readFile path
+    let nodes = parseLsp content in
+        return $ either (\_ -> [Sym "PARSE-ERROR"]) (\x -> x) nodes
 
 main = do
     contents <- readFile "test.lsp"
