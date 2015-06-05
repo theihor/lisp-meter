@@ -4,8 +4,7 @@ module Metrics
 , countOfLists
 , countOfFunctions
 , averageFunctionSize
-, halsteadOperators
-, halsteadOperands
+, halsteadMetrics
 ) where
 
 import Parser
@@ -47,4 +46,30 @@ halsteadOperands term =
         uniqueOperands = removeDuplicates allOperands
     in (length allOperands, length uniqueOperands)
 
+halsteadMetrics :: [Node] -> Map.Map String Double 
+halsteadMetrics term =
+    let (n1, n1') = (\(x, y) -> (fromIntegral x, fromIntegral y)) 
+                    $ halsteadOperators term
+        (n2, n2') = (\(x, y) -> (fromIntegral x, fromIntegral y)) 
+                    $ halsteadOperands term
+        n = n1 + n2
+        bigN = n1' + n2'
+        bigN' = (n1 * logBase 2 n1) + (n2 * logBase 2 n2)
+        volume = bigN * logBase 2 n
+        difficulty = (n1 / 2) * (n2' / n2)
+        effort = difficulty * volume
+        time = effort / 18
+        bugs = effort ** (2/3) / 3000
+    in Map.fromList [("n1", n1),
+                     ("n2", n2),
+                     ("N1", n1'),
+                     ("N2", n2'),
+                     ("n", n),
+                     ("N", bigN),
+                     ("N'", bigN'),
+                     ("V", volume),
+                     ("D", difficulty),
+                     ("E", effort),
+                     ("T", time),
+                     ("B", bugs)]
 
