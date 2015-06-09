@@ -47,7 +47,7 @@ forthis node (rule : rules) =
         else forthis node rules
 
 
-foreachCount :: [Node] -> [String] -> Integer
+foreachCount :: [Node] -> [String] -> Int
 foreachCount [] _ = 0
 foreachCount _ [] = 0
 foreachCount (node : nodes) rules =
