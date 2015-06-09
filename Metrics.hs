@@ -8,6 +8,8 @@ module Metrics
 , callGraph
 , cyclomaticComlexity
 , recursiveComplexity
+, maintainabilityIndex
+, functionsMI
 ) where
 
 import Parser
@@ -38,14 +40,14 @@ averageFunctionSize term =
 -- Halstead
 halsteadOperators :: [Node] -> (Int, Int)
 halsteadOperators term =
-    let allLists = foreachCollect term ["(_*)"]
+    let allLists = foreachCollect term ["(_ _*)"]
         allOperators = filter nodeSymbol $ map (\n -> head $ nodeComponents n) allLists 
         uniqueOperators = removeDuplicates allOperators
     in (length uniqueOperators, length allOperators)
 
 halsteadOperands :: [Node] -> (Int, Int)
 halsteadOperands term =
-    let allLists = foreachCollect term ["(_*)"]
+    let allLists = foreachCollect term ["(_ _*)"]
         allOperands = foldl (++) [] $ map (\n -> tail $ nodeComponents n) allLists
         uniqueOperands = removeDuplicates allOperands
     in (length uniqueOperands, length allOperands)
@@ -108,7 +110,8 @@ cyclomaticComlexity term =
                                "(reduce _*)",
                                "(dolist _*)",
                                "(and _*)",
-                               "(or _*)"]
+                               "(or _*)",
+                               "(lambda _*)"]
 
 -- recursiveComplexity :: [Node] -> Int
 recursiveComplexity term =
@@ -137,3 +140,16 @@ recursiveComplexity term =
         roots g =
             let toNodes = foldl (++) [] $ map snd $ Map.toList g
             in filter (\n -> not $ n `elem` toNodes) $ map fst $ Map.toList g
+
+maintainabilityIndex term =
+    let hm = halsteadMetrics term
+        v = Maybe.fromJust $ Map.lookup "V" hm
+        g = fromIntegral $ cyclomaticComlexity term
+        l = (fromIntegral $ countOfSexprs term) / 6.0
+    in max 0 (100.0 * (171.0 - 5.2 * (logBase 2 v) - 0.23 * g - 16.2 * (logBase 2 l)) / 171.0)
+
+functionsMI term =
+    let funcs = foreachCollect term ["(defun _*)"]
+    in Map.fromList $ map (\f -> (funcName f, round $ maintainabilityIndex [f])) funcs
+    where
+        funcName func = let (Sym name) = (nodeComponents func) !! 1 in name
