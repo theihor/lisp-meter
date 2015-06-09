@@ -5,6 +5,7 @@ module Metrics
 , countOfFunctions
 , averageFunctionSize
 , halsteadMetrics
+, callGraph
 ) where
 
 import Parser
@@ -37,14 +38,14 @@ halsteadOperators term =
     let allLists = foreachCollect term ["(_*)"]
         allOperators = filter nodeSymbol $ map (\n -> head $ nodeComponents n) allLists 
         uniqueOperators = removeDuplicates allOperators
-    in (length allOperators, length uniqueOperators)
+    in (length uniqueOperators, length allOperators)
 
 halsteadOperands :: [Node] -> (Int, Int)
 halsteadOperands term =
     let allLists = foreachCollect term ["(_*)"]
         allOperands = foldl (++) [] $ map (\n -> tail $ nodeComponents n) allLists
         uniqueOperands = removeDuplicates allOperands
-    in (length allOperands, length uniqueOperands)
+    in (length uniqueOperands, length allOperands)
 
 halsteadMetrics :: [Node] -> Map.Map String Double 
 halsteadMetrics term =
@@ -72,4 +73,22 @@ halsteadMetrics term =
                      ("E", effort),
                      ("T", time),
                      ("B", bugs)]
+-- call graph
+callGraph :: [Node] -> Map.Map String [String]
+callGraph term =
+    let allFuncs = foreachCollect term ["(defun _*)"]
+        allFuncNames = map funcName allFuncs
+    in foldl (\m f -> putInGraph m f allFuncNames) Map.empty allFuncs
+    where
+        funcName func = let (Sym name) = (nodeComponents func) !! 1 in name
+        putInGraph m func allFuncNames =
+              let fName = funcName func
+                  fBody = functionBody func 
+                  calls = foreachCollect fBody ["(_*)"]
+                  called = map (\(Sym n) -> n) 
+                               $ filter nodeSymbol 
+                               $ map nodeHead 
+                               $ filter (\call -> not $ (==) call $ parse' "()") calls
+                  connected =  filter (\f -> elem f allFuncNames) called
+              in Map.insert fName (removeDuplicates connected) m
 

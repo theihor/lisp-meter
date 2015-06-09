@@ -5,6 +5,8 @@ module Utils
 , foreachCollect
 , nodeSymbol
 , removeDuplicates
+, nodeHead
+, functionBody
 ) where
 
 import Parser
@@ -70,4 +72,12 @@ removeDuplicates lst =
     foldr (\x seen -> if x `elem` seen 
                       then seen else x : seen) 
           [] lst
-                             
+
+nodeHead :: Node -> Node
+nodeHead node = head $ nodeComponents node
+
+functionBody :: Node -> [Node]
+functionBody term 
+    | len < 4 = []
+    | otherwise = tail $ tail $ tail $ nodeComponents term
+    where len = length $ nodeComponents term
